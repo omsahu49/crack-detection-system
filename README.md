@@ -141,6 +141,10 @@ Urgency: Low Priority — Monitor
 - 💼 Freelance AI/ML Developer
 - 🤖 Kaggle Competitor
 - 📍 Bhopal, Madhya Pradesh, India
+- 📧 omsahu.aiml@gmail.com
+- 💼 [LinkedIn](https://linkedin.com/in/omsahu-ai)
+- 🐙 [GitHub](https://github.com/omsahu49)
+- 🏆 [Kaggle](https://kaggle.com/omsahu4503)
 - 🔗 [CDW Waste Detection Project](https://github.com/omsahu49/cdw-waste-detection)
 
 ---
