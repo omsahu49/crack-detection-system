@@ -76,7 +76,7 @@ col1, col2 = st.columns([1, 1], gap="medium")
 
 with col1:
     st.markdown("<h5 style='color: #9ca3af;'>🖼️ Upload Concrete/Wall Image</h5>", unsafe_allow_html=True)
-    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png"], label_visibility="collapsed")
+    uploaded_file = st.file_uploader("", type=["jpg", "jpeg", "png", "webp"], label_visibility="collapsed")
     
     if uploaded_file is not None:
         image = Image.open(uploaded_file).convert('RGB')
