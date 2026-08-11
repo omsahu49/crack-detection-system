@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-# Page Configuration
+# Set dark page layout
 st.set_page_config(
     page_title="AI Crack Detection System",
     page_icon="🏗️",
@@ -46,17 +46,17 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("## 🏗️ AI Crack Detection System")
-st.markdown("<p style='color: #9ca3af;'>MobileNetV2 Transfer Learning concrete crack detection tool.</p>", unsafe_allow_html=True)
+st.markdown("<p style='color: #9ca3af;'>MobileNetV2-based concrete crack detection tool.</p>", unsafe_allow_html=True)
 
-MODEL_PATH = "best_crack_model.keras"
+# Absolute Path to avoid file-pointer loss in Keras 3
+MODEL_PATH = os.path.abspath("best_crack_model.keras")
 
 @st.cache_resource
 def load_crack_model():
     if not os.path.exists(MODEL_PATH):
-        return None, f"Model file '{MODEL_PATH}' not found."
+        return None, f"File `{MODEL_PATH}` not found in repository root."
     try:
-        with tf.keras.utils.custom_object_scope({}):
-            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
         return model, None
     except Exception as e:
         return None, str(e)
@@ -86,18 +86,18 @@ with col2:
         if model is None:
             st.error(f"Failed to load model: {load_error}")
         else:
-            with st.spinner("Analyzing surface through MobileNetV2..."):
+            with st.spinner("Analyzing image..."):
                 img_resized = image.resize((224, 224))
                 img_array = np.array(img_resized, dtype=np.float32)
                 
-                # Standard MobileNetV2 preprocessing [-1, 1] range
+                # MobileNetV2 preprocessing
                 img_preprocessed = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
                 img_batch = np.expand_dims(img_preprocessed, axis=0)
 
-                raw_pred = model.predict(img_batch, verbose=0)[0][0]
+                raw_pred = float(model.predict(img_batch, verbose=0)[0][0])
                 
-                # Invert logic if class 0 was trained as Crack
-                # If output is low (<=0.5), it means Crack
+                st.markdown("---")
+                # Class mapping check
                 if raw_pred <= 0.5:
                     confidence = (1.0 - raw_pred) * 100
                     st.error(f"### 🚨 Status: CRACK DETECTED\n**Confidence:** {confidence:.2f}%")
