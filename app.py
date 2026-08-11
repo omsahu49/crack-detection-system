@@ -1,5 +1,4 @@
 import os
-# Force CPU execution to ensure stability on Streamlit free tier
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import streamlit as st
@@ -54,9 +53,8 @@ MODEL_PATH = "best_crack_model.keras"
 @st.cache_resource
 def load_crack_model():
     if not os.path.exists(MODEL_PATH):
-        return None, f"Model file '{MODEL_PATH}' not found in GitHub root directory."
+        return None, f"Model file '{MODEL_PATH}' not found."
     try:
-        # Custom object scope handling for nested Functional Keras 3 model
         with tf.keras.utils.custom_object_scope({}):
             model = tf.keras.models.load_model(MODEL_PATH, compile=False)
         return model, None
@@ -89,18 +87,19 @@ with col2:
             st.error(f"Failed to load model: {load_error}")
         else:
             with st.spinner("Analyzing surface through MobileNetV2..."):
-                # Preprocess image for [224, 224, 3] MobileNetV2 input layer
                 img_resized = image.resize((224, 224))
-                img_array = np.array(img_resized, dtype=np.float32) / 255.0
-                img_array = np.expand_dims(img_array, axis=0)
+                img_array = np.array(img_resized, dtype=np.float32)
+                
+                # Standard MobileNetV2 preprocessing [-1, 1] range
+                img_preprocessed = tf.keras.applications.mobilenet_v2.preprocess_input(img_array)
+                img_batch = np.expand_dims(img_preprocessed, axis=0)
 
-                # Inference on sigmoid output layer (dense_2)
-                raw_pred = model.predict(img_array, verbose=0)
-                prediction = float(raw_pred[0][0])
-
-                st.markdown("---")
-                if prediction > 0.5:
-                    confidence = prediction * 100
+                raw_pred = model.predict(img_batch, verbose=0)[0][0]
+                
+                # Invert logic if class 0 was trained as Crack
+                # If output is low (<=0.5), it means Crack
+                if raw_pred <= 0.5:
+                    confidence = (1.0 - raw_pred) * 100
                     st.error(f"### 🚨 Status: CRACK DETECTED\n**Confidence:** {confidence:.2f}%")
                     
                     st.markdown("<h5 style='color: #9ca3af; margin-top:20px;'>Severity Analysis</h5>", unsafe_allow_html=True)
@@ -113,7 +112,7 @@ with col2:
                         st.markdown("<h5 style='color: #9ca3af; margin-top:15px;'>Maintenance Recommendation</h5>", unsafe_allow_html=True)
                         st.info("Monitor crack growth and apply surface sealants.")
                 else:
-                    confidence = (1.0 - prediction) * 100
+                    confidence = raw_pred * 100
                     st.success(f"### ✅ Status: NO CRACK DETECTED\n**Confidence:** {confidence:.2f}%")
                     
                     st.markdown("<h5 style='color: #9ca3af; margin-top:20px;'>Severity Analysis</h5>", unsafe_allow_html=True)
