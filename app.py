@@ -15,7 +15,7 @@ st.set_page_config(
 
 # Custom Gradio Dark Theme Styling
 st.markdown("""
-<stylePlugin>
+<style>
     /* Dark Background Override */
     .stApp {
         background-color: #0b0f19;
@@ -37,7 +37,7 @@ st.markdown("""
         height: 45px;
     }
     
-    /* Primary Submit Button (Orange like Gradio) */
+    /* Primary Submit Button */
     div[data-testid="column"]:nth-child(1) .stButton>button[kind="primary"] {
         background-color: #ff5500;
         color: white;
@@ -51,7 +51,7 @@ st.markdown("""
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-</stylePlugin>
+</style>
 """, unsafe_allow_html=True)
 
 # Title & Description
