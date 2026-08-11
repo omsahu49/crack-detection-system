@@ -1,4 +1,5 @@
 import os
+# Force CPU execution to ensure stability on Streamlit free tier
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 import streamlit as st
@@ -6,7 +7,7 @@ import numpy as np
 import tensorflow as tf
 from PIL import Image
 
-# Set dark page layout
+# Page Configuration
 st.set_page_config(
     page_title="AI Crack Detection System",
     page_icon="🏗️",
@@ -16,28 +17,21 @@ st.set_page_config(
 # Custom Gradio Dark Theme Styling
 st.markdown("""
 <style>
-    /* Dark Background Override */
     .stApp {
         background-color: #0b0f19;
         color: #ffffff;
     }
-    
-    /* Box Container styling like Gradio */
     div[data-testid="column"] {
         background-color: #121826;
         border: 1px solid #1f293d;
         border-radius: 8px;
         padding: 18px;
     }
-
-    /* Buttons Styling */
     .stButton>button {
         border-radius: 6px;
         font-weight: 600;
         height: 45px;
     }
-    
-    /* Primary Submit Button */
     div[data-testid="column"]:nth-child(1) .stButton>button[kind="primary"] {
         background-color: #ff5500;
         color: white;
@@ -46,32 +40,31 @@ st.markdown("""
     div[data-testid="column"]:nth-child(1) .stButton>button[kind="primary"]:hover {
         background-color: #e04b00;
     }
-
-    /* Hide Streamlit Header & Footer */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
-# Title & Description
 st.markdown("## 🏗️ AI Crack Detection System")
-st.markdown("<p style='color: #9ca3af;'>MobileNetV2-based concrete crack detection tool.</p>", unsafe_allow_html=True)
+st.markdown("<p style='color: #9ca3af;'>MobileNetV2 Transfer Learning concrete crack detection tool.</p>", unsafe_allow_html=True)
 
 MODEL_PATH = "best_crack_model.keras"
 
 @st.cache_resource
 def load_crack_model():
-    if os.path.exists(MODEL_PATH):
-        try:
-            return tf.keras.models.load_model(MODEL_PATH, compile=False)
-        except Exception as e:
-            return None
-    return None
+    if not os.path.exists(MODEL_PATH):
+        return None, f"Model file '{MODEL_PATH}' not found in GitHub root directory."
+    try:
+        # Custom object scope handling for nested Functional Keras 3 model
+        with tf.keras.utils.custom_object_scope({}):
+            model = tf.keras.models.load_model(MODEL_PATH, compile=False)
+        return model, None
+    except Exception as e:
+        return None, str(e)
 
-model = load_crack_model()
+model, load_error = load_crack_model()
 
-# Gradio Side-by-Side 2 Column Layout
 col1, col2 = st.columns([1, 1], gap="medium")
 
 with col1:
@@ -93,18 +86,21 @@ with col2:
     
     if uploaded_file is not None and submit_btn:
         if model is None:
-            st.error("Model file (`best_crack_model.keras`) load nahi ho pa rahi hai.")
+            st.error(f"Failed to load model: {load_error}")
         else:
-            with st.spinner("Analyzing image..."):
+            with st.spinner("Analyzing surface through MobileNetV2..."):
+                # Preprocess image for [224, 224, 3] MobileNetV2 input layer
                 img_resized = image.resize((224, 224))
-                img_array = np.array(img_resized) / 255.0
+                img_array = np.array(img_resized, dtype=np.float32) / 255.0
                 img_array = np.expand_dims(img_array, axis=0)
 
-                prediction = model.predict(img_array)[0][0]
+                # Inference on sigmoid output layer (dense_2)
+                raw_pred = model.predict(img_array, verbose=0)
+                prediction = float(raw_pred[0][0])
 
                 st.markdown("---")
                 if prediction > 0.5:
-                    confidence = float(prediction) * 100
+                    confidence = prediction * 100
                     st.error(f"### 🚨 Status: CRACK DETECTED\n**Confidence:** {confidence:.2f}%")
                     
                     st.markdown("<h5 style='color: #9ca3af; margin-top:20px;'>Severity Analysis</h5>", unsafe_allow_html=True)
@@ -117,7 +113,7 @@ with col2:
                         st.markdown("<h5 style='color: #9ca3af; margin-top:15px;'>Maintenance Recommendation</h5>", unsafe_allow_html=True)
                         st.info("Monitor crack growth and apply surface sealants.")
                 else:
-                    confidence = float(1 - prediction) * 100
+                    confidence = (1.0 - prediction) * 100
                     st.success(f"### ✅ Status: NO CRACK DETECTED\n**Confidence:** {confidence:.2f}%")
                     
                     st.markdown("<h5 style='color: #9ca3af; margin-top:20px;'>Severity Analysis</h5>", unsafe_allow_html=True)
