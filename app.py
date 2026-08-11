@@ -20,7 +20,11 @@ MODEL_PATH = "best_crack_model.keras"
 @st.cache_resource
 def load_crack_model():
     if os.path.exists(MODEL_PATH):
-        return tf.keras.models.load_model(MODEL_PATH)
+        try:
+            return tf.keras.models.load_model(MODEL_PATH, compile=False)
+        except Exception as e:
+            st.error(f"Model load error: {e}")
+            return None
     return None
 
 model = load_crack_model()
@@ -33,7 +37,7 @@ if uploaded_file is not None:
     
     if st.button("Analyze Surface"):
         if model is None:
-            st.error("Model file (`best_crack_model.keras`) not found in repository.")
+            st.error("Model file (`best_crack_model.keras`) not found or failed to load.")
         else:
             with st.spinner("Analyzing image..."):
                 img_resized = image.resize((224, 224))
